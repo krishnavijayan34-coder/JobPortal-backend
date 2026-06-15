@@ -1,0 +1,142 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+enum Role {
+  JOBSEEKER
+  EMPLOYER
+}
+
+model User {
+  userId    Int      @id @default(autoincrement())
+  name      String?
+  email     String   @unique
+  password  String
+
+  role      Role
+
+  isActive  Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  jobSeeker JobSeeker?
+  company   Company?
+}
+
+model JobSeeker {
+  jobSeekerId    Int      @id @default(autoincrement())
+
+  userId         Int      @unique
+  user           User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  contactNumber  String
+  qualification  String
+  experience     Int
+  resumeUrl      String?
+
+  registeredDate DateTime @default(now())
+
+  applications   Application[]
+  jobSeekerSkills JobSeekerSkill[]
+  savedJobs      SavedJob[]
+}
+
+model Company {
+  companyId   Int      @id @default(autoincrement())
+
+  userId      Int      @unique
+  user        User     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  companyName String
+  description String?
+  location    String
+  website     String?
+  isActive    Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  jobs        Job[]
+}
+
+model Job {
+  jobId       Int      @id @default(autoincrement())
+
+  title       String
+  description String
+  salary      String
+  location    String
+  jobType     String
+  experience  Int?
+  companyId   Int
+  company     Company  @relation(fields: [companyId], references: [companyId], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  applications Application[]
+  jobSkills    JobSkill[]
+  savedJobs    SavedJob[]
+}
+
+model Application {
+  applicationId Int      @id @default(autoincrement())
+
+  jobId         Int
+  jobSeekerId   Int
+
+  status        String   @default("PENDING")
+  appliedAt     DateTime @default(now())
+
+  job           Job       @relation(fields: [jobId], references: [jobId], onDelete: Cascade)
+  jobSeeker     JobSeeker @relation(fields: [jobSeekerId], references: [jobSeekerId], onDelete: Cascade)
+
+  @@unique([jobId, jobSeekerId])
+}
+
+model Skill {
+  skillId   Int      @id @default(autoincrement())
+  skillName String   @unique
+
+  jobSkills       JobSkill[]
+  jobSeekerSkills JobSeekerSkill[]
+}
+
+model JobSkill {
+  jobId   Int
+  skillId Int
+
+  job     Job   @relation(fields: [jobId], references: [jobId], onDelete: Cascade)
+  skill   Skill @relation(fields: [skillId], references: [skillId], onDelete: Cascade)
+
+  @@id([jobId, skillId])
+}
+
+model JobSeekerSkill {
+  jobSeekerId Int
+  skillId     Int
+
+  jobSeeker   JobSeeker @relation(fields: [jobSeekerId], references: [jobSeekerId], onDelete: Cascade)
+  skill       Skill     @relation(fields: [skillId], references: [skillId], onDelete: Cascade)
+
+  @@id([jobSeekerId, skillId])
+}
+
+model SavedJob {
+  savedJobId  Int      @id @default(autoincrement())
+
+  jobSeekerId Int
+  jobId       Int
+
+  createdAt   DateTime @default(now())
+
+  jobSeeker   JobSeeker @relation(fields: [jobSeekerId], references: [jobSeekerId], onDelete: Cascade)
+  job         Job       @relation(fields: [jobId], references: [jobId], onDelete: Cascade)
+
+  @@unique([jobSeekerId, jobId])
+}
